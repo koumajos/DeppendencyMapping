@@ -30,98 +30,88 @@
         This software is provided as is'', and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the company or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 
 
+
+
 """
-# libraries for working with sqlite3 database
+#libraries for working with sqlite3 database
 import sqlite3
 import csv
-
-# libraries for working with OS UNIX files and system
+#libraries for working with OS UNIX files and system
 import os
 import sys
-
-# libraries for downloading initial data from oficial web databse
-import urllib
+#libraries for downloading initial data from oficial web databse
+import urllib           
 import urllib.request
-
-# libraries for arg os scripts
-import argparse
+#libraries for arguments os scripts
+import argparse     
 from argparse import RawTextHelpFormatter
-
-url_ports = "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv"
-url_mac = "https://macaddress.io/database/macaddress.io-db.csv"
-
-
-def check_str(string, suffix):
+#===============================================================================================
+#url of (un)official web databse of inital data fro sqlite3 database
+urlP = "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv"
+urlV = "https://macaddress.io/database/macaddress.io-db.csv"
+#===============================================================================================
+#===============================================================================================
+def CheckStr(STR, DOT):
     """Function check if string have DOT suffix in end of string. Like suffix .txt in text.txt.
 
     Parameters
     --------
-    string : str 
+    STR : str 
         String of file name.
-    suffix : str
+    DOT : str
         String of file suffix.
     Returns
     --------
     Boolean : boolean
-        True if string have suffix DOT.
-        False if string havn't suffix DOT.
+        True if STR have suffix DOT.
+        False if STR havn't suffix DOT.
     """
-    spl = string.split(suffix)
-    if spl[-1] == "":
+    x = STR.split(DOT)
+    if x[-1] == '':
         return True
     return False
-
-
-def create_db(file, arg):
+#===============================================================================================
+#===============================================================================================
+def CreateDB(FILE):
     """Create sqlite3 database file and then created scructure of tables in it
     
     Parameters
     --------
-    file : str 
+    FILE : str 
         The database file to create.
 
     Returns
     --------
-    sqlite_connection : sqlite3
+    SQLiteConnection : sqlite3
         The connection to created sqlite3 database.
     cursor : sqlite3
         The cursor for execute SQL queries in created sqlite3 database.
     """
     try:
-        print("Connecting to database....", end="")
-        if os.path.exists(file):  # if database file exist:
-            if arg.y:
-                os.remove(file)
+        print("Connecting to database....", end = '')
+        if os.path.exists(FILE):        #if database file exist:
+            print("")
+            print("Database already exists. Do you want do delete it and create new? [yes] - ", end = '')
+            if(input() == "yes"):       #choose if:
+                print("Removing old database and create new one....", end = '')
+                os.remove(FILE)         #remove file and continue
             else:
-                print(
-                    "\nDatabase already exists. Do you want do delete it and create new? [yes] - ",
-                    end="",
-                )
-                if input() == "yes":  # choose if:
-                    print("Removing old database and create new one....", end="")
-                    os.remove(file)  # remove file and continue
-                else:
-                    print("Exiting script....")
-                    sys.exit()  # exit
-        sqlite_connection = sqlite3.connect(
-            file
-        )  # create ne connection to new sqlite database file
-        cursor = sqlite_connection.cursor()
+                print("Exiting script....")
+                sys.exit()              #exit
+        SQLiteConnection = sqlite3.connect(FILE)        #create ne connection to new sqlite database file
+        cursor = SQLiteConnection.cursor()
         print("done")
-        with open("Database_sqlite_create.sql") as sqlite_file:  # open the sql file
+        with open('Database_sqlite_create.sql') as sqlite_file:     #open the sql file
             sql_script = sqlite_file.read()
-        print("Creating Database schema....", end="")
-        cursor.executescript(
-            sql_script
-        )  # and execute it for create sql scructure in database
+        print("Creating Database schema....", end = '')
+        cursor.executescript(sql_script)        #and execute it for create sql scructure in database
         print("done")
-        return sqlite_connection, cursor
-        # return connectiona nd cursor for work with database
+        return SQLiteConnection, cursor;        #return connectiona nd cursor for work with database
     except sqlite3.Error as error:
         print("Error while executing sqlite script", error)
-
-
-def download_data(name, arg):
+#===============================================================================================
+#===============================================================================================
+def DownloadData(name):
     """Download initial data for sqlite3 database and open it
     
     Parameters
@@ -134,150 +124,109 @@ def download_data(name, arg):
     reader : csv
         The opened data taht have been downloaded.
     """
-    if arg.s:
-        if os.path.exists(name + "_url.csv"):
-            reader = csv.reader(open(name + "_url.csv", "r"), delimiter=",")
-        elif os.path.exists(name + ".csv"):
-            reader = csv.reader(open(name + ".csv", "r"), delimiter=",")
+    try:        #try download the file from url, if can't download or connect, use the archive local file (can be deprecated)
+        if name == "Ports":        
+            print("Downloading Transport Layer Ports data....", end='')
+            urllib.request.urlretrieve(urlP, name + "_url.csv")
         else:
-            print("Archive file ", name, " doesn't found.")
-            sys.exit()
-        return reader
-    try:  # try download the file from url, if can't download or connect, use the archive local file (can be deprecated)
-        if name == "Ports":
-            print("Downloading Transport Layer Ports data....", end="")
-            urllib.request.urlretrieve(url_ports, name + "_url.csv")
-        else:
-            print("Downloading Vendors of MAC address data....", end="")
-            urllib.request.urlretrieve(url_mac, name + "_url.csv")
+            print("Downloading Vendors of MAC address data....", end='')
+            urllib.request.urlretrieve(urlV, name + "_url.csv")                    
         print("done")
-        reader = csv.reader(open(name + "_url.csv", "r"), delimiter=",")
+        reader = csv.reader(open(name + "_url.csv",'r'), delimiter=',')
     except:
         print("Download failed, open local archive file...")
-        if os.path.exists(name + ".csv"):
-            reader = csv.reader(open(name + ".csv", "r"), delimiter=",")
-        else:
-            print("Archive file ", name, " doesn't found.")
-            sys.exit()
+        reader = csv.reader(open(name + ".csv",'r'), delimiter=',')
     return reader
-
-
-def inser_data(
-    sqlite_connection, cursor, read_ports, read_mac, read_services, read_filter
-):
+#===============================================================================================
+#===============================================================================================
+def InserData(SQLiteConnection, cursor, readerP, readerM, readerS, readerF):
     """Insert initial data to tables
     
     Parameters
     -----------
-    sqlite_connection : sqlite3 
+    SQLiteConnection : sqlite3 
         The connection to the sqlite3 database.
     cursor : sqlite3
         The cursor at the sqlite3 database for execute SQL queries.
-    read_ports : csv
+    readerP : csv
         The opened file that is fill with initial Ports table data
-    read_mac : csv
+    readerM : csv
         The opened file that is fill with initial VendorsMAC table data
-    read_services : csv
+    readerS : csv
         The opened file that is fill with initial Services table data
-    read_filter : csv
+    readerF : csv
         The opened file that is fill with initial Filter table data
     """
     try:
-        print("Inserting data to table Ports....", end="")
-        for row in read_ports:
+        print("Inserting data to table Ports....", end='')
+        for row in readerP:
             to_db = [row[0], row[1], row[2], row[3]]
-            cursor.execute(
-                "INSERT INTO Ports (ServiceName, PortNumber, TransportProtocol, Description) VALUES (?, ?, ?, ?);",
-                to_db,
-            )
+            cursor.execute("INSERT INTO Ports (ServiceName, PortNumber, TransportProtocol, Description) VALUES (?, ?, ?, ?);", to_db)
         print("done")
-        print("Inserting data to table VendorsMAC....", end="")
-        for row in read_mac:
+        print("Inserting data to table VendorsMAC....", end='')
+        for row in readerM:
             to_db = [row[0], row[1], row[2], row[4], row[5]]
-            cursor.execute(
-                "INSERT INTO VendorsMAC (VendorMAC, IsPrivate, CompanyName, CountryCode, AssignmentBlockSize) VALUES (?, ?, ?, ?, ?);",
-                to_db,
-            )
+            cursor.execute("INSERT INTO VendorsMAC (VendorMAC, IsPrivate, CompanyName, CountryCode, AssignmentBlockSize) VALUES (?, ?, ?, ?, ?);", to_db)
         print("done")
-        print("Inserting Services data to table....", end="")
-        for row in read_services:
+        print("Inserting Services data to table....", end='')
+        for row in readerS:
             to_db = [row[0], row[1], row[2], row[3]]
-            cursor.execute(
-                "INSERT INTO Services (PortNumber, DeviceType, Shortcut, Description) VALUES (?, ?, ?, ?);",
-                to_db,
-            )
+            cursor.execute("INSERT INTO Services (PortNumber, DeviceType, Shortcut, Description) VALUES (?, ?, ?, ?);", to_db)
         print("done")
-        print("Inserting Filter data to table....", end="")
-        for row in read_filter:
+        print("Inserting Filter data to table....", end='')
+        for row in readerF:
             to_db = [row[0], row[1], row[2], row[3]]
-            cursor.execute(
-                "INSERT INTO Filter (ID_Filter, PortNumber, Protocol, MinPackets) VALUES (?, ?, ?, ?);",
-                to_db,
-            )
+            cursor.execute("INSERT INTO Filter (ID_Filter, PortNumber, Protocol, MinPackets) VALUES (?, ?, ?, ?);", to_db)
         print("done")
-        sqlite_connection.commit()
+        SQLiteConnection.commit()        
     except sqlite3.Error as error:
         print("Error while inserting data to sqlite3 database", error)
-
-
-def arguments():
-    """The function loads the script parameters.
-
-    Returns:
-        argparse: Arguments of the script
-    """
-    parser = argparse.ArgumentParser(
-        description="""Create sqlite3 database from sql file: Database_sqlite_create.sql 
-    Database is filled with PassiveAutodiscovery.py NEMEA modul with coaporate Collector.py.
-    Then analyze with DeviceAnalyzer.py.
-
-    Usage:""",
-        formatter_class=RawTextHelpFormatter,
-    )
-    parser.add_argument(
-        "-d",
-        "--database",
-        help="Set name of the database without . part,  default is Database",
-        type=str,
-        metavar="NAME",
-        default="Database",
-    )
-    parser.add_argument(
-        "-y", help="Consent to overwrite exists database", action="store_true"
-    )
-    parser.add_argument(
-        "-s", help="Skip downloading new data and use archive data", action="store_true"
-    )
-    arg = parser.parse_args()
-    return arg
-
-
-def main():
+#===============================================================================================
+#===============================================================================================
+#main function
+def Main():
     """Main function of script. Work with other functions to create database, get a initial data and fill the initial data to tables.
     
     """
-    arg = arguments()
-    # name of sqlite3 database file that will be create
-    if check_str(arg.database, ".db"):
-        file = arg.database
-    else:
-        file = arg.database + ".db"
-    # create sqlite3 database
-    sqlite_connection, cursor = create_db(file, arg)
-    # fill sqlite3 database with initial data
-    read_ports = download_data("Ports", arg)
-    read_mac = download_data("VendorsMAC", arg)
-    read_services = csv.reader(open("Services.csv", "r"), delimiter=",")
-    read_filter = csv.reader(open("Filter.csv", "r"), delimiter=",")
-    inser_data(
-        sqlite_connection, cursor, read_ports, read_mac, read_services, read_filter,
+    #===============================================================================================
+    #Arguemnts of python script
+    parser = argparse.ArgumentParser( description="""Create sqlite3 database from sql file: Database_sqlite_create.sql 
+    Database is filled with PassiveAutodiscovery.py NEMEA modul with coaporate Collector.py.
+    Then analyze with DeviceAnalyzer.py.
+
+    Usage:""", formatter_class=RawTextHelpFormatter)
+    #===============================================================================================
+    parser.add_argument(
+        '-d', '--database',
+        help="Set name of the database without . part,  default is Database",
+        type=str,
+        metavar='NAME',
+        default="Database"
     )
-    # release of used resources
+    arguments = parser.parse_args()
+    #===============================================================================================
+    #name of sqlite3 database file that will be create    
+    if CheckStr(arguments.database, ".db") == True:
+        FILE = arguments.database
+    else:
+        FILE = arguments.database + ".db"       
+    #create sqlite3 database
+    SQLiteConnection, cursor = CreateDB(FILE)
+    #===============================================================================================
+    #fill sqlite3 database with initial data
+    readerP = DownloadData("Ports")
+    readerM = DownloadData("VendorsMAC")
+    readerS = csv.reader(open('Services.csv','r'), delimiter=',')    
+    readerF = csv.reader(open('Filter.csv','r'), delimiter=',')
+    InserData(SQLiteConnection, cursor, readerP, readerM, readerS, readerF)
+    #===============================================================================================
+    #release of used resources
     cursor.close()
-    if sqlite_connection:
-        sqlite_connection.close()
-
-
+    if(SQLiteConnection):
+        SQLiteConnection.close()
+#===============================================================================================
+#===============================================================================================
 if __name__ == "__main__":
-    main()
-
+    Main()
+#===============================================================================================
+#===============================================================================================
